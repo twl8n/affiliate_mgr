@@ -33,30 +33,21 @@
   (let [
         res (execute! db ["insert into entry (title,desc) values (?,?)" "Hitachi Compact Impact Driver" "The best tool I own"])
         output (query db ["select * from entry where id=?" 1])]
-    (response/response (str "Mod web output:" :request request
-                                      :result res
-                                      :output output))))
-;; (response 
-;;     {:status 200
-;;      :headers {"Content-Type" "text/plain"}
-;;      :body (str "Mod web output:" {:request request
-;;                                    :result res
-;;                                    :output output})})
+    {:status 200
+     :headers {"Content-Type" "text/plain"}
+     :body (str "Mod web output:" {:request request
+                                   :result res
+                                   :output output})}))
 
-;; (defn app
-;;   [request]
-;;   (handler request ))
-
-
-;; def, not defn
-;; (def app
-;;   (-> handler (rmp/wrap-params)))
-
-;; http://localhost:3000/demo?foo=bar&baz=pie
+    ;; (response/response (str "Mod web output:"
+    ;;                         :request request
+    ;;                         :result res
+    ;;                         :output output))))
 
 (def app
   (rmp/wrap-params handler))
 
+;; Need -main for 'lien run', but it is ignored by 'lein ring'.
 (defn -main []
   (jetty/run-jetty app {:port 3000}))
 

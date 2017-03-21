@@ -15,6 +15,49 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 ;; Partial example. No mention of dependencies.
 ;; https://gist.github.com/weavejester/585921
 
+#### project.clj and :ring
+
+https://github.com/weavejester/lein-ring
+
+If you want to 'lein ring' or 'lein ring server-headless' then project.clj must have a :ring option However,
+the option must send the request through the function that wraps the handler with with wrap-params, and any other
+wrap-* decorators. If you want to wrap your request, then you must not send the request directly to the handler.
+
+```
+;; project.clj
+:ring {:handler affiliate-mgr.core/app}
+
+;; core.clj
+(defn handler [] ...)
+
+;; def, not defn, interestingly.
+(def app
+  (rmp/wrap-params handler))
+```
+
+
+
+If you use 'lein run' then you don't need a :ring config in project.clj
+Note the hyphen, affiliate-mgr even though our path is affiliate_mgr
+If you uncomment this, the request can't passed through wrap-params.
+
+If you do use :ring, the following line is wrong, and the request goes to handler directly, skipping
+a wrapper, even if there's a wrapper specified in the run-jetty call.
+
+```
+;; project.clj
+:ring {:handler affiliate-mgr.core/handler}
+
+;; core.clj -main, apparently never called if project.clj has :ring and you 'lein run'.
+(jetty/run-jetty app {:port 3000})
+```
+
+
+Test POST requests:
+
+```
+wget -S "http://localhost:3000/demox" --post-data 'cake=pie' -O - | less
+```
 
 #### Errors you hope to never see
 
