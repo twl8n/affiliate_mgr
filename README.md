@@ -35,21 +35,25 @@ wrap-* decorators. If you want to wrap your request, then you must not send the 
   (rmp/wrap-params handler))
 ```
 
+If you use 'lein run' then you don't need a :ring config in project.clj Note the hyphen, affiliate-mgr even
+though our path is affiliate_mgr (underscore). 
 
-
-If you use 'lein run' then you don't need a :ring config in project.clj
-Note the hyphen, affiliate-mgr even though our path is affiliate_mgr
-If you uncomment this, the request can't passed through wrap-params.
-
-If you do use :ring, the following line is wrong, and the request goes to handler directly, skipping
-a wrapper, even if there's a wrapper specified in the run-jetty call.
+If you do use :ring and 'lein ring', the following :ring option is wrong, since it routes the http request to
+handler directly, skipping a wrapper, even if there's a wrapper specified in the run-jetty call.
 
 ```
 ;; project.clj
-:ring {:handler affiliate-mgr.core/handler}
+:ring {:handler affiliate-mgr.core/handler} ; wrong for at least 2 reasons!
 
-;; core.clj -main, apparently never called if project.clj has :ring and you 'lein run'.
-(jetty/run-jetty app {:port 3000})
+;; core.clj
+(defn handler [] ...)
+
+(def app
+  (rmp/wrap-params handler))
+
+;; -main is only called if you 'lein run', but ignored by 'lein ring'.
+(defn -main []
+  (jetty/run-jetty app {:port 3000}))
 ```
 
 
