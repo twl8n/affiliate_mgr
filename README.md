@@ -15,6 +15,43 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 ;; Partial example. No mention of dependencies.
 ;; https://gist.github.com/weavejester/585921
 
+#### regexp hints
+
+(defn pq [xx] (java.util.regex.Pattern/quote xx))
+
+(defn rep [xx mmap]
+  (map 
+  (let [regexp (re-pattern (pq (str "{{" xx "}}")))]
+    {:xx xx
+     :string (clojure.string/replace "test {{:foo}}" regexp (mmap xx))
+     :mmap mmap}))
+
+(rep :foo {:foo "one" :bar "two"})
+;; {:xx :foo, :string "test one", :mmap {:foo "one", :bar "two"}}
+
+;; repeatedly apply regexp to a string to create a map.
+;; Not what I need, but has some similar qualities
+user> (let [x "layout: default\ntitle: Envy Labs"]
+        (reduce (fn [h [_ k v]] (assoc h k v))
+                {}
+                (re-seq #"([^:]+): (.+)(\n|$)" x)))
+;; {"title" "Envy Labs", "layout" "default"}
+
+
+  (let [matcher (re-matcher #"\((\w+)\):(\d+)" "(fish):1 sausage (cow):3 tree (boat):4")]
+    (loop [match (re-find matcher)
+           lst []]
+      (if match
+        (recur (re-find matcher) (conj lst (str (second match) (nth match 2))))
+        lst)))
+
+;; perl, only 3 lines and easier to read
+while ($text =~ /\((\w+)\):(\d+)/g) {
+  push @list, "$1$2"
+}
+  
+
+
 #### project.clj and :ring
 
 https://github.com/weavejester/lein-ring

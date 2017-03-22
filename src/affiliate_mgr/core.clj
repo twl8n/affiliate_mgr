@@ -1,9 +1,10 @@
 (ns affiliate-mgr.core
   (:require [clojure.java.jdbc :refer :all]
             [clojure.tools.namespace.repl :as tns]
-            [ring.adapter.jetty :as jetty]
-            [ring.util.response :as response]
-            [ring.middleware.params :as rmp])
+            [clojure.string :as str]
+            [ring.adapter.jetty :as ringa]
+            [ring.util.response :as ringu]
+            [ring.middleware.params :as ringm])
   (:gen-class))
 
 (def db
@@ -27,17 +28,36 @@
    :headers {"Content-Type" "text/plain"}
    :body "Hello Ring! Am I reloadable?"})
 
+(defn show [params]
+    (let [output (query db ["select * from entry where id=?" 1])]
+      output))
+
+(defn choose [params]
+  (let [title (params "title")]
+    (cond (not (nil? title))
+          (query db ["select * from entry where title like ? limit 1" (format "%%%s%%" title)]))))
+
+(defn pq [xx] (java.util.regex.Pattern/quote xx))
+
+;; ({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil})
+(defn edit [record]
+  (let [template (slurp "edit.html")]
+    (map #(str/replace template (re-pattern (str "{{" (pq %) "}}")) record))
+
 (defn handler 
   "Affiliate link manager."
   [request]
-  (let [
-        res (execute! db ["insert into entry (title,desc) values (?,?)" "Hitachi Compact Impact Driver" "The best tool I own"])
-        output (query db ["select * from entry where id=?" 1])]
+  (let [params (:params request)
+        rmap (cond (= "show" (params "action"))
+                   (show params)
+                   (= "choose" (params "action"))
+                   (choose params)
+                   :else
+                   {:error "unknown action"})]
     {:status 200
      :headers {"Content-Type" "text/plain"}
-     :body (str "Mod web output:" {:request request
-                                   :result res
-                                   :output output})}))
+     :body (with-out-str (prn rmap))}))
+
 
     ;; (response/response (str "Mod web output:"
     ;;                         :request request
@@ -45,9 +65,9 @@
     ;;                         :output output))))
 
 (def app
-  (rmp/wrap-params handler))
+  (ringm/wrap-params handler))
 
 ;; Need -main for 'lien run', but it is ignored by 'lein ring'.
 (defn -main []
-  (jetty/run-jetty app {:port 3000}))
+  (ringa/run-jetty app {:port 3000}))
 

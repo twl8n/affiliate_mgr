@@ -11,11 +11,6 @@
                  [ring "1.5.0"]
                  [ring/ring-core "1.2.1"]
                  [ring/ring-jetty-adapter "1.2.1"]]
-  ;; If you use 'lein run' then you don't need a :ring config here.
-  ;; Note hyphen, affiliate-mgr even though our path is affiliate_mgr
-  ;; If you uncomment this, the request can't passed through wrap-params.
-  ;; :ring {:handler affiliate-mgr.core/handler}
-
   ;; You need a :ring with lein ring or lein ring server-headless
   ;; However, you must send the request through the function that wraps the handler with
   ;; with wrap-params, and any other wrap-* decorators.
