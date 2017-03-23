@@ -2,6 +2,7 @@
   (:require [clojure.java.jdbc :refer :all]
             [clojure.tools.namespace.repl :as tns]
             [clojure.string :as str]
+            [clojure.pprint :refer :all]
             [ring.adapter.jetty :as ringa]
             [ring.util.response :as ringu]
             [ring.middleware.params :as ringm])
@@ -22,12 +23,6 @@
                                          [:body :text]))
        (catch Exception e (println e))))
 
-
-(defn xhandler [request]
-  {:status 200
-   :headers {"Content-Type" "text/plain"}
-   :body "Hello Ring! Am I reloadable?"})
-
 (defn show [params]
     (let [output (query db ["select * from entry where id=?" 1])]
       output))
@@ -39,30 +34,31 @@
 
 (defn pq [xx] (java.util.regex.Pattern/quote xx))
 
-;; ({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil})
+(defn cstr [str] (str/replace (with-out-str (pprint str)) #"\n" "\n"))
+
+(def myrec ({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
 (defn edit [record]
-  (let [template (slurp "edit.html")]
-    (map #(str/replace template (re-pattern (str "{{" (pq %) "}}")) record))
+  (let [template (slurp "edit.html")
+        body (map (fn [[kk vv]] (str/replace template (re-pattern (pq (str "{{" kk "}}"))) (str vv))) (first record))]
+  (prn body)
+  body))
 
 (defn handler 
   "Affiliate link manager."
   [request]
   (let [params (:params request)
+        ras  request
         rmap (cond (= "show" (params "action"))
                    (show params)
                    (= "choose" (params "action"))
-                   (choose params)
-                   :else
-                   {:error "unknown action"})]
-    {:status 200
-     :headers {"Content-Type" "text/plain"}
-     :body (with-out-str (prn rmap))}))
-
-
-    ;; (response/response (str "Mod web output:"
-    ;;                         :request request
-    ;;                         :result res
-    ;;                         :output output))))
+                   (choose params))]
+    (if (some? rmap)
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body (edit (first rmap))}
+      (ringu/content-type 
+       (ringu/response 
+        (str "<html><body><pre>" (cstr ras) "</pre></body></html>")) "text/html"))))
 
 (def app
   (ringm/wrap-params handler))

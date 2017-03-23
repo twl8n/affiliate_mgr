@@ -17,6 +17,41 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 
 #### regexp hints
 
+(defn myz []
+  (loop [ii "xxx yyy" rex [#"x" #"y"]]
+    (if (some? (first rex))
+      (do
+      (recur (str/replace ii (first rex) "zz") (rest rex))) ii)))
+
+(loop [ii "xxx yyy" rex [#"x" #"y"]] (when (some? rex) (recur (str/replace ii (first rex) "xx") (rest rex))))
+
+(loop [i [#"x" #"y"]] (when (some? i) (recur ((prn i) (rest i)))))
+
+(loop [i (range 5)] (when (not (nil? i)) (recur (prn i))))
+
+https://clojure.org/about/functional_programming#_recursive_looping
+
+(defn myz [keys]
+  (loop [my-keys (seq keys)]
+    (if (some? (first my-keys))
+      (do
+      (prn (first my-keys))
+      (recur (rest my-keys)))
+      my-keys)))
+
+
+(defn my-zipmap [keys vals]
+  (loop [my-map {}
+         my-keys (seq keys)
+         my-vals (seq vals)]
+    (if (and my-keys my-vals)
+      (recur (assoc my-map (first my-keys) (first my-vals))
+             (next my-keys)
+             (next my-vals))
+      my-map)))
+(my-zipmap [:a :b :c] [1 2 3])
+-> {:b 2, :c 3, :a 1}
+
 (defn pq [xx] (java.util.regex.Pattern/quote xx))
 
 (defn rep [xx mmap]
