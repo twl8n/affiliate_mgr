@@ -5,7 +5,8 @@
             [clojure.pprint :refer :all]
             [ring.adapter.jetty :as ringa]
             [ring.util.response :as ringu]
-            [ring.middleware.params :as ringm])
+            [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.multipart-params :refer [wrap-multipart-params]])
   (:gen-class))
 
 (def db
@@ -36,7 +37,8 @@
 
 (defn cstr [str] (str/replace (with-out-str (pprint str)) #"\n" "\n"))
 
-(def myrec ({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
+(def myrec '({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
+
 (defn edit [record]
   (let [template (slurp "edit.html")
         body (map (fn [[kk vv]] (str/replace template (re-pattern (pq (str "{{" kk "}}"))) (str vv))) (first record))]
@@ -61,7 +63,7 @@
         (str "<html><body><pre>" (cstr ras) "</pre></body></html>")) "text/html"))))
 
 (def app
-  (ringm/wrap-params handler))
+  (wrap-multipart-params (wrap-params handler)))
 
 ;; Need -main for 'lien run', but it is ignored by 'lein ring'.
 (defn -main []
