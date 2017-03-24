@@ -15,7 +15,28 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 ;; Partial example. No mention of dependencies.
 ;; https://gist.github.com/weavejester/585921
 
-#### regexp hints
+#### regexp hints, looping, atom
+(def zz (atom "foo"))
+(swap! zz #(clojure.string/replace % #"f" "g")))
+
+(def zz "foo bxx byyy")
+(doseq [rex [#"x" #"y"]] (def zz (clojure.string/replace zz rex "a")))
+
+(defn rreg [mystr rex]
+  (if (empty? rex)
+    mystr
+    (rreg (clojure.string/replace mystr (first rex) "a") (rest rex))))
+(rreg "foo bxx byy" [#"x" #"y"])
+
+(def zz "foo bxx byy")
+(doseq [rex [#"x" #"y"]] (def zz (clojure.string/replace zz rex "a")))
+;; or plain (map) works in a repl, but need (dorun (map ...)) in code where execution is lazy
+(dorun (map #(def zz (clojure.string/replace zz % "a")) [#"x" #"y"]))
+;; run! added in clojure 1.7
+(run! #(def zz (clojure.string/replace zz % "a")) [#"x" #"y"])
+
+# Verbose, and still needs and if to halt recursion.
+(transduce (map identity) (fn [aa & bb] (if (some? bb) (clojure.string/replace aa (first bb) "a") aa)) "foo bxx byy" [#"x" #"y"])
 
 (defn myz []
   (loop [ii "xxx yyy" rex [#"x" #"y"]]

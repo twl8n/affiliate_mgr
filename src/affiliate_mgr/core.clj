@@ -37,7 +37,16 @@
 
 (defn cstr [str] (str/replace (with-out-str (pprint str)) #"\n" "\n"))
 
-(def myrec '({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
+(defn dev-init []
+  (def myrec '({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
+  (def mytpl (slurp "edit.html")))
+
+(defn map-re [orig remap]
+  (loop [ostr orig
+         [[label value] & remainder] remap]
+    (if (some? label)
+      (do
+      (recur (str/replace ostr (re-pattern (pq (str "{{" label "}}"))) (str value)) remainder)) ostr)))
 
 (defn edit [record]
   (let [template (slurp "edit.html")
