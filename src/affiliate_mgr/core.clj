@@ -42,7 +42,23 @@
         desc (params "desc")]
     (cond (not (nil? (params "id")))
           (do
-            (execute! db ["update entry set title=?, desc=?, stars=?" title desc stars])))))
+            (execute! db ["update entry set title=?, desc=?, stars=? where id=?" title desc stars id])))))
+
+(defn list-all [params]
+  (query db ["select * from entry order by id"]))
+
+;; (let [[_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" "pre{{for}}middle{{end}}post")] {:pre pre :body body :post post})
+;; {:pre "pre", :body "middle", :post "post"}
+
+(defn fill-list-all [rseq]
+  (let [template (slurp "list-all.html")
+        [_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
+    ;; Need to loop the maps in rseq over body with map-re, then (str pre (apply str body-seq) post)
+
+    ;;looping over a block of html means it is time to
+    ;;add clostash templates or deft-templates.
+
+    template))
 
 (defn pq [xx] (java.util.regex.Pattern/quote xx))
 
@@ -81,15 +97,24 @@
                    (= "update-db" action)
                    (do 
                      (update-db params)
-                     (map #(assoc % :_msg "updated") (show params))))]
-    (spit "rmap_debug.txt" (with-out-str (prn "rmap: " rmap)))
-    (if (some? rmap)
-      {:status 200
-       :headers {"Content-Type" "text/html"}
-       :body (edit (first rmap))}
-      (ringu/content-type 
-       (ringu/response 
-        (str "<html><body><pre>" (cstr ras) "</pre></body></html>")) "text/html"))))
+                     (map #(assoc % :_msg "updated") (show params)))
+                   (= "list-all" action)
+                   (list-all params))]
+    #_(spit "rmap_debug.txt" (with-out-str (prn "rmap: " rmap)))
+    (cond (some? rmap)
+          (cond (or (= "show" action)
+                    (= "update-db" action))
+                    {:status 200
+                     :headers {"Content-Type" "text/html"}
+                     :body (edit (first rmap))}
+                    (= "list-all" action)
+                    {:status 200
+                     :headers {"Content-Type" "text/html"}
+                     :body (fill-list-all rmap)})
+          :else
+          (ringu/content-type 
+           (ringu/response 
+            (str "<html><body><pre>" (cstr ras) "</pre></body></html>")) "text/html"))))
 
 (def app
   (wrap-multipart-params (wrap-params handler)))

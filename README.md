@@ -1,5 +1,15 @@
 # affiliate_mgr
 
+* need to implement the state machine
+
+* need to implement deft templates, or start using  clostache
+
+clj only?
+https://github.com/fhd/clostache
+
+clj and cljs?
+https://github.com/fotoetienne/cljstache
+
 ;; http://clojure-doc.org/articles/ecosystem/java_jdbc/home.html
 
 ;; https://github.com/clojure/tools.namespace

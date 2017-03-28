@@ -2,6 +2,8 @@
 <html>
   <head><title>Edit</title></head>
   <body>
+    <a href="/app?action=show&id=1">Record 1</a>
+    <br>
     Message: {{:_msg}}
     <form action="" method="GET">
       <input type="hidden" name="action" value="update-db">
@@ -9,7 +11,8 @@
       <br/>
       Title: <input type="text" name="title" value="{{:title}}" size="60">
       <br/>
-      Desc: <input type="text" name="desc" value="{{:desc}}">
+      Desc:<br>
+      <textarea type="text" name="desc" style="width: 36em; height: 10em;">{{:desc}}</textarea>
       <br/>
       Stars: <input type="text" name="stars" value="{{:stars}}">
       <br/>
