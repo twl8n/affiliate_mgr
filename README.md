@@ -25,7 +25,13 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 ;; Partial example. No mention of dependencies.
 ;; https://gist.github.com/weavejester/585921
 
+
+
 #### regexp hints, looping, atom
+
+;; recur inside fn
+((fn [x] (if (= x 0) (print "done") (recur (do (print x) (dec x))))) 10)
+
 (def zz (atom "foo"))
 (swap! zz #(clojure.string/replace % #"f" "g")))
 
