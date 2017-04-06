@@ -44,22 +44,6 @@
           (do
             (execute! db ["update entry set title=?, desc=?, stars=? where id=?" title desc stars id])))))
 
-(defn list-all [params]
-  (query db ["select * from entry order by id"]))
-
-;; (let [[_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" "pre{{for}}middle{{end}}post")] {:pre pre :body body :post post})
-;; {:pre "pre", :body "middle", :post "post"}
-
-(defn fill-list-all [rseq]
-  (let [template (slurp "list-all.html")
-        [_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
-    ;; Need to loop the maps in rseq over body with map-re, then (str pre (apply str body-seq) post)
-
-    ;;looping over a block of html means it is time to
-    ;;add clostash templates or deft-templates.
-
-    template))
-
 (defn pq [xx] (java.util.regex.Pattern/quote xx))
 
 (defn cstr [str] (str/replace (with-out-str (pprint str)) #"\n" "\n"))
@@ -68,21 +52,49 @@
   (def myrec '({:id 1, :title "Hitachi Compact Impact Driver", :desc "The best tool I own", :stars nil, :isbn nil}))
   (def mytpl (slurp "edit.html")))
 
-;; string map
+;; [string map] returning modified string
 ;; (seq) the map into a sequence of k v
-(defn map-re [orig remap]
+(defn map-re
+  "Replaced placeholders in the orig template with keys and values from the map remap. This is the functional 
+equivalent of using regexes to change a string in place."
+  [orig remap]
   (loop [ostr orig
          [[label value] & remainder] (seq remap)]
-    (if (some? label)
-      (do
-      (recur (str/replace ostr (re-pattern (pq (str "{{" label "}}"))) (str value)) remainder)) ostr)))
+    (if (nil? label)
+      ostr
+      (recur (str/replace ostr (re-pattern (pq (str "{{" label "}}"))) (str value)) remainder))))
 
-;; (map (fn [[kk vv]] (str/replace template (re-pattern (pq (str "{{" kk "}}"))) (str vv))) record)
-(defn edit [record]
+(defn list-all [params]
+  (query db ["select * from entry order by id"]))
+
+;; (let [[_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" "pre{{for}}middle{{end}}post")] {:pre pre :body body :post post})
+;; {:pre "pre", :body "middle", :post "post"}
+
+(defn fill-list-all
+  "Fill in a list of all records. The regex must use (?s) so that newline matches ."
+  [rseq]
+  (let [template (slurp "list-all.html")
+        [all pre body post] (re-matches #"(?s)^(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
+
+    ;; Need to loop the maps in rseq over body with map-re, then (str pre (apply str body-seq) post)
+    ;;looping over a block of html means it is time to
+    ;;add clostash templates or deft-templates.
+
+    (str pre
+         (loop [full body
+                remap rseq]
+           (prn full)
+           (if (empty? remap)
+               full
+             (recur (str (map-re full (first remap)) body) (rest remap))))
+         post)))
+
+(defn edit
+  "Map each key value in the record against placeholders in the template to create a web page."
+  [record]
   (let [template (slurp "edit.html")
         body (map-re template record)]
-  (spit "body_debug.html" body)
-  body))
+    body))
 
 (defn handler 
   "Affiliate link manager."

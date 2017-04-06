@@ -46,12 +46,27 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 
 (def zz "foo bxx byy")
 (doseq [rex [#"x" #"y"]] (def zz (clojure.string/replace zz rex "a")))
+
 ;; or plain (map) works in a repl, but need (dorun (map ...)) in code where execution is lazy
 (dorun (map #(def zz (clojure.string/replace zz % "a")) [#"x" #"y"]))
+
 ;; run! added in clojure 1.7
 (run! #(def zz (clojure.string/replace zz % "a")) [#"x" #"y"])
 
-# Verbose, and still needs and if to halt recursion.
+(defn myz []
+  (loop [ii "xxxa yyya" rex [#"x" "aa"  #"y" "bb"]]
+    (if (empty? rex)
+      ii
+      (recur (str/replace ii (first rex) (second rex)) (nthrest rex 2)))))
+
+;; Accumulate ii, returning it when rex is consumed.
+(defn myz []
+  (loop [ii "xxxa yyya" rex [#"x" #"y"]]
+    (if (empty? rex)
+      ii
+      (recur (str/replace ii (first rex) "zz") (rest rex)))))
+
+# Verbose, and still needs an if to halt recursion.
 (transduce (map identity) (fn [aa & bb] (if (some? bb) (clojure.string/replace aa (first bb) "a") aa)) "foo bxx byy" [#"x" #"y"])
 
 (defn myz []
