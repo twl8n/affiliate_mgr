@@ -5,14 +5,15 @@
     <a href="/app?action=show&id=1">Record 1</a>
     <br>
     Message: {{:_msg}}
+    <p>
     {{for}}
-      <a href="/app?action=show&id{{:id}}">Edit id {{:id}}</a>
+      <a href="/app?action=show&id={{:id}}">Edit id {{:id}}</a>
       <br/>
       Title: {{:title}}
       <br/>
       Desc: {{:desc}}
       <br/>
-      Stars: <input type="text" name="stars" value="{{:stars}}">
+      Stars: {{:stars}}
       <br/>
     {{end}}
   </body>

@@ -9,6 +9,59 @@
             [ring.middleware.multipart-params :refer [wrap-multipart-params]])
   (:gen-class))
 
+(defn mya
+  "Loop only for side effect. The str/replace is done, but the value is only printed, not saved. stracc and
+  rex are always passed back in the recur, and only the index is modified."
+  []
+  (loop [stracc "xxxa yyya yb" 
+         rex [#"x" #"y"]
+         index 0]
+    (if (> index 100)
+      (println "hit: " index)
+      (recur 
+       (let [cs (str/replace stracc (first rex) "zz")]
+         (println index "is string: " cs)
+         stracc)
+       rex
+       (inc index)))))
+
+(defn myb
+  "Same speed as (myz). Call the body in a let binding so we can return before the index is incremented an extra time. Return with
+  index 1 unlike (mya) and (myz) which return with index 2. Loop over regex seq rex (consuming rex), modifying string
+  accumulator stracc. Use an index."
+  []
+  (loop [stracc "xxxa yyya yb" 
+         rex [#"x" #"y"]
+         index 0]
+    (let [cs (str/replace stracc (first rex) "zz")
+          rexr (rest rex)]
+      (println index "is string: " cs)
+      (if (empty? rexr)
+        (do
+          ;; This print raises the timing on 10 invocations from 33 to 47 ms.
+          (println "Final index: " index)
+          cs)
+        (recur cs 
+               rexr
+               (inc index))))))
+  
+  (defn myz
+  "Loop over regex seq rex (consuming rex), modifying string accumulator stracc. Also inc an index so we can print debug info."
+  []
+  (loop [stracc "xxxa yyya yb" 
+         rex [#"x" #"y"]
+         index 0]
+    (if (empty? rex)
+        (do
+          ;; This print raises the timing on 10 invocations from 33 to 47 ms.
+          (println "Final index: " index)
+          stracc)
+      (recur (let [cs (str/replace stracc (first rex) "zz")]
+               (println index "is string: " cs)
+               cs)
+             (rest rex) 
+             (inc index)))))
+
 (def db
   {:classname   "org.sqlite.JDBC"
    :subprotocol "sqlite"
@@ -71,22 +124,18 @@ equivalent of using regexes to change a string in place."
 ;; {:pre "pre", :body "middle", :post "post"}
 
 (defn fill-list-all
-  "Fill in a list of all records. The regex must use (?s) so that newline matches ."
+  "Fill in a list of all records. The regex must use (?s) so that newline matches .
+Initialize with empty string, map-re on the body, and accumulate all the body strings."
   [rseq]
   (let [template (slurp "list-all.html")
         [all pre body post] (re-matches #"(?s)^(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
-
-    ;; Need to loop the maps in rseq over body with map-re, then (str pre (apply str body-seq) post)
-    ;;looping over a block of html means it is time to
-    ;;add clostash templates or deft-templates.
-
-    (str pre
-         (loop [full body
+    (str (map-re pre {:_msg "List all from db"})
+         (loop [full ""
                 remap rseq]
            (prn full)
            (if (empty? remap)
                full
-             (recur (str (map-re full (first remap)) body) (rest remap))))
+             (recur (str full (map-re body (first remap))) (rest remap))))
          post)))
 
 (defn edit
