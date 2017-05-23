@@ -9,6 +9,25 @@
             [ring.middleware.multipart-params :refer [wrap-multipart-params]])
   (:gen-class))
 
+;; use destructuring to allow a 2 arg function to work in comp
+;; Not a great example since 2 arg fun really is 1 arg with destructuring
+;; maybe partial with a true 2 arg func.
+(def fx (comp (fn [[foo bar]] (format "a: %s b: %s" foo bar)) (fn foo [xx yy] (prn xx yy) [xx yy])))
+;; (fx 1 3)
+;; 1 3
+;; "a: 1 b: 3"
+;; quick-web.core=> 
+
+
+;; A true 2 arg fn2 called via partial apply where the arg is a vector with 2 items.
+
+(defn fn2 [foo bar] (format "a: %s b: %s" foo bar))
+(def fx (comp  (partial apply fn2) (fn foo [xx yy] (prn xx yy) [xx yy])))
+;; quick-web.core=> (fx 1 3)
+;; 1 3
+;; "a: 1 b: 3"
+;; quick-web.core=> 
+
 (defn mya
   "Loop only for side effect. The str/replace is done, but the value is only printed, not saved. stracc and
   rex are always passed back in the recur, and only the index is modified."
@@ -184,3 +203,18 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
 (defn -main []
   (ringa/run-jetty app {:port 3000}))
 
+(defn demo-transaction
+  "Demo looping SQL inside a transaction. This seems to lack an explicit commit, which makes it tricky to
+commit every X SQL queries. Use doall or something to un-lazy inside with-db-transaction, if you need the
+query results"
+  []
+  (with-db-transaction [dbh db]
+    (execute! dbh ["delete from entry where title like 'demo transaction%'"])
+    (loop [nseq (range 10)]
+      (let [num (first nseq)
+            remainder (rest nseq)]
+        (if (nil? num)
+          nil
+          (do
+            (execute! dbh ["insert into entry (title,stars) values (?,?)" (str "demo transaction" num) num])
+          (recur remainder)))))))
