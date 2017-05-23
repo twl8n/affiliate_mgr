@@ -206,7 +206,9 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
 (defn demo-transaction
   "Demo looping SQL inside a transaction. This seems to lack an explicit commit, which makes it tricky to
 commit every X SQL queries. Use doall or something to un-lazy inside with-db-transaction, if you need the
-query results"
+query results.
+
+http://pesterhazy.karmafish.net/presumably/2015-05-25-getting-started-with-clojure-jdbc-and-sqlite.html"
   []
   (with-db-transaction [dbh db]
     (execute! dbh ["delete from entry where title like 'demo transaction%'"])
