@@ -2,6 +2,14 @@
 
 * need to implement the state machine
 
+* start using clostache
+
+* x Add tag table and entry-to-tag linking table to the db
+
+* implement edit, search for tags
+
+* integrate tag search with edit entry, and display current tags for each entry
+
 * need to implement deft templates, or start using  clostache
 
 clj only?
@@ -25,7 +33,17 @@ https://gist.github.com/jamiei/1f74b817ca5d306af9f3
 ;; Partial example. No mention of dependencies.
 ;; https://gist.github.com/weavejester/585921
 
+#### transactions make repetitve queries faster
 
+```
+affiliate-mgr.core=> (time (demo-autocommit))
+"Elapsed time: 28006.605 msecs"
+nil
+affiliate-mgr.core=> (time (demo-transaction))
+"Elapsed time: 448.085 msecs"
+nil
+affiliate-mgr.core=> 
+```
 
 #### regexp hints, looping, atom
 
@@ -203,6 +221,10 @@ No such namespace: affiliate_mgr.core
 
 
 ## Usage
+
+http://localhost:8080/app?action=list-all
+
+http://localhost:8080/app?action=show&id=1
 
 FIXME: explanation
 

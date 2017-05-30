@@ -1,5 +1,5 @@
 (ns affiliate-mgr.core
-  (:require [clojure.java.jdbc :refer :all]
+  (:require [clojure.java.jdbc :as jdbc] ;; :refer :all]
             [clojure.tools.namespace.repl :as tns]
             [clojure.string :as str]
             [clojure.pprint :refer :all]
@@ -88,8 +88,8 @@
    })
 
 (defn create-db []
-  (try (db-do-commands db
-                       (create-table-ddl :news
+  (try (jdbc/db-do-commands db
+                       (jdbc/create-table-ddl :news
                                          [:date :text]
                                          [:url :text]
                                          [:title :text]
@@ -97,15 +97,15 @@
        (catch Exception e (println e))))
 
 (defn show [params]
-  (let [id (params "id")
-        output (query db ["select * from entry where id=?" id])]
-    (spit "show_debug.txt" (with-out-str (prn "id: " id " out: " output)))
+  (let [id (get params "id")
+        output (jdbc/query db ["select * from entry where id=?" id])]
+    ;; (spit "show_debug.txt" (with-out-str (prn "id: " id " out: " output)))
     output))
 
 (defn choose [params]
   (let [title (params "title")]
-    (cond (not (nil? title))
-          (query db ["select * from entry where title like ? limit 1" (format "%%%s%%" title)]))))
+    (when (not (nil? title))
+      (jdbc/query db ["select * from entry where title like ? limit 1" (format "%%%s%%" title)]))))
 
 (defn update-db [params]
   (let [id (params "id")
@@ -114,7 +114,7 @@
         desc (params "desc")]
     (cond (not (nil? (params "id")))
           (do
-            (execute! db ["update entry set title=?, desc=?, stars=? where id=?" title desc stars id])))))
+            (jdbc/execute! db ["update entry set title=?, desc=?, stars=? where id=?" title desc stars id])))))
 
 (defn pq [xx] (java.util.regex.Pattern/quote xx))
 
@@ -126,6 +126,7 @@
 
 ;; [string map] returning modified string
 ;; (seq) the map into a sequence of k v
+;; This is the "render" of something like clostache.
 (defn map-re
   "Replaced placeholders in the orig template with keys and values from the map remap. This is the functional 
 equivalent of using regexes to change a string in place."
@@ -137,7 +138,7 @@ equivalent of using regexes to change a string in place."
       (recur (str/replace ostr (re-pattern (pq (str "{{" label "}}"))) (str value)) remainder))))
 
 (defn list-all [params]
-  (query db ["select * from entry order by id"]))
+  (jdbc/query db ["select * from entry order by id"]))
 
 ;; (let [[_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" "pre{{for}}middle{{end}}post")] {:pre pre :body body :post post})
 ;; {:pre "pre", :body "middle", :post "post"}
@@ -148,7 +149,7 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
   [rseq]
   (let [template (slurp "list-all.html")
         [all pre body post] (re-matches #"(?s)^(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
-    (str (map-re pre {:_msg "List all from db"})
+    (str (map-re pre {:_msg ["List all from db"]})
          (loop [full ""
                 remap rseq]
            (prn full)
@@ -171,7 +172,7 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
         action (params "action")
         ras  request
         rmap (cond (= "show" action)
-                   (map #(assoc % :_msg "read from db") (show params))
+                   (map #(assoc % :_msg (format "read %s from db" (get params "id"))) (show params))
                    (= "choose" action)
                    (choose params)
                    (= "update-db" action)
@@ -199,9 +200,44 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
 (def app
   (wrap-multipart-params (wrap-params handler)))
 
+;; https://stackoverflow.com/questions/2706044/how-do-i-stop-jetty-server-in-clojure
+;; example
+;; (defonce server (run-jetty #'my-app {:port 8080 :join? false}))
+
+;; Unclear how defonce and lein ring server headless will play together.
+(defonce server (ringa/run-jetty app {:port 8080 :join? false}))
+
 ;; Need -main for 'lien run', but it is ignored by 'lein ring'.
 (defn -main []
-  (ringa/run-jetty app {:port 3000}))
+  (ringa/run-jetty app {:port 8080}))
+
+;; https://stackoverflow.com/questions/39765943/clojure-java-jdbc-lazy-query
+;; https://jdbc.postgresql.org/documentation/83/query.html#query-with-cursor
+;; http://clojure-doc.org/articles/ecosystem/java_jdbc/using_sql.html#exception-handling-and-transaction-rollback
+;; http://clojure-doc.org/articles/ecosystem/java_jdbc/using_sql.html#using-transactions
+
+(defn ex-lazy-select
+  []
+  (jdbc/with-db-transaction [tx db] ;; originally connection
+    (jdbc/query tx
+                [(jdbc/prepare-statement (:connection tx)
+                                         "select * from mytable"
+                                         {:fetch-size 10})]
+                {:result-set-fn (fn [result-set] result-set)})))
+
+(defn demo-autocommit
+  "Demo looping SQL without a transaction. Every execute will auto-commit, which is time consuming. This
+  function takes 62x longer than doing these queries inside a single transaction."
+  []
+  (jdbc/execute! db ["delete from entry where title like 'demo transaction%'"])
+  (loop [nseq (range 10000)]
+    (let [num (first nseq)
+          remainder (rest nseq)]
+      (if (nil? num)
+        nil
+        (do
+          (jdbc/execute! db ["insert into entry (title,stars) values (?,?)" (str "demo transaction" num) num])
+          (recur remainder))))))
 
 (defn demo-transaction
   "Demo looping SQL inside a transaction. This seems to lack an explicit commit, which makes it tricky to
@@ -210,13 +246,13 @@ query results.
 
 http://pesterhazy.karmafish.net/presumably/2015-05-25-getting-started-with-clojure-jdbc-and-sqlite.html"
   []
-  (with-db-transaction [dbh db]
-    (execute! dbh ["delete from entry where title like 'demo transaction%'"])
-    (loop [nseq (range 10)]
+  (jdbc/with-db-transaction [dbh db]
+    (jdbc/execute! dbh ["delete from entry where title like 'demo transaction%'"])
+    (loop [nseq (range 10000)]
       (let [num (first nseq)
             remainder (rest nseq)]
         (if (nil? num)
           nil
           (do
-            (execute! dbh ["insert into entry (title,stars) values (?,?)" (str "demo transaction" num) num])
+            (jdbc/execute! dbh ["insert into entry (title,stars) values (?,?)" (str "demo transaction" num) num])
           (recur remainder)))))))
