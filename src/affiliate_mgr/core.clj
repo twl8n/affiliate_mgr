@@ -3,6 +3,7 @@
             [clojure.tools.namespace.repl :as tns]
             [clojure.string :as str]
             [clojure.pprint :refer :all]
+            [clostache.parser :refer [render]]
             [ring.adapter.jetty :as ringa]
             [ring.util.response :as ringu]
             [ring.middleware.params :refer [wrap-params]]
@@ -143,13 +144,13 @@ equivalent of using regexes to change a string in place."
 ;; (let [[_ pre body post] (re-matches #"(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" "pre{{for}}middle{{end}}post")] {:pre pre :body body :post post})
 ;; {:pre "pre", :body "middle", :post "post"}
 
-(defn fill-list-all
+(defn map-re-fill-list-all
   "Fill in a list of all records. The regex must use (?s) so that newline matches .
 Initialize with empty string, map-re on the body, and accumulate all the body strings."
   [rseq]
   (let [template (slurp "list-all.html")
         [all pre body post] (re-matches #"(?s)^(.*?)\{\{for\}\}(.*?)\{\{end\}\}(.*)$" template)]
-    (str (map-re pre {:_msg ["List all from db"]})
+    (str (map-re pre {:sys-msg ["List all from db"]})
          (loop [full ""
                 remap rseq]
            (prn full)
@@ -158,11 +159,19 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
              (recur (str full (map-re body (first remap))) (rest remap))))
          post)))
 
+(defn fill-list-all
+  "Fill in a list of all records. The regex must use (?s) so that newline matches .
+Initialize with empty string, map-re on the body, and accumulate all the body strings."
+  [rseq]
+  (let [template (slurp "list-all.html")]
+    (render template rseq)))
+
 (defn edit
   "Map each key value in the record against placeholders in the template to create a web page."
   [record]
   (let [template (slurp "edit.html")
-        body (map-re template record)]
+        ;; body (map-re template record)
+        body (render template record)]
     body))
 
 (defn handler 
@@ -172,13 +181,13 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
         action (params "action")
         ras  request
         rmap (cond (= "show" action)
-                   (map #(assoc % :_msg (format "read %s from db" (get params "id"))) (show params))
+                   (map #(assoc % :sys-msg (format "read %s from db" (get params "id"))) (show params))
                    (= "choose" action)
                    (choose params)
                    (= "update-db" action)
                    (do 
                      (update-db params)
-                     (map #(assoc % :_msg "updated") (show params)))
+                     (map #(assoc % :sys-msg "updated") (show params)))
                    (= "list-all" action)
                    (list-all params))]
     #_(spit "rmap_debug.txt" (with-out-str (prn "rmap: " rmap)))
@@ -191,7 +200,7 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
                     (= "list-all" action)
                     {:status 200
                      :headers {"Content-Type" "text/html"}
-                     :body (fill-list-all rmap)})
+                     :body (fill-list-all {:all-recs rmap :sys-msg "All recs from db"})})
           :else
           (ringu/content-type 
            (ringu/response 
@@ -205,6 +214,10 @@ Initialize with empty string, map-re on the body, and accumulate all the body st
 ;; (defonce server (run-jetty #'my-app {:port 8080 :join? false}))
 
 ;; Unclear how defonce and lein ring server headless will play together.
+;; (.start server)
+
+;; Simply starting the repl starts jetty. (tns/refresh) is not necessary, and seems to not play nice with some
+;; kind of auto-refresh.
 (defonce server (ringa/run-jetty app {:port 8080 :join? false}))
 
 ;; Need -main for 'lien run', but it is ignored by 'lein ring'.

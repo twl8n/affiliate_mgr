@@ -8,6 +8,7 @@
                  [org.clojure/java.jdbc "0.3.5"]
                  [org.xerial/sqlite-jdbc "3.7.2"]
                  [org.clojure/tools.namespace "0.2.11"]
+                 [de.ubercode.clostache/clostache "1.4.0"]
                  [ring "1.5.0"]
                  [ring/ring-core "1.2.1"]
                  [ring/ring-jetty-adapter "1.2.1"]]

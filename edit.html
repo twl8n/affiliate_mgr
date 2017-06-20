@@ -6,17 +6,17 @@
     <br>
     <a href="/app?action=show&id=1">Record 1</a>
     <br>
-    Message: {{:_msg}}
+    Message: {{_msg}}
     <form action="" method="GET">
       <input type="hidden" name="action" value="update-db">
-      <input type="hidden" name="id" value="{{:id}}">
+      <input type="hidden" name="id" value="{{id}}">
       <br/>
-      Title: <input type="text" name="title" value="{{:title}}" size="60">
+      Title: <input type="text" name="title" value="{{title}}" size="60">
       <br/>
       Desc:<br>
-      <textarea type="text" name="desc" style="width: 36em; height: 10em;">{{:desc}}</textarea>
+      <textarea type="text" name="desc" style="width: 36em; height: 10em;">{{desc}}</textarea>
       <br/>
-      Stars: <input type="text" name="stars" value="{{:stars}}">
+      Stars: <input type="text" name="stars" value="{{stars}}">
       <br/>
       <input type="submit" name="submit" value="Go">
     </form>

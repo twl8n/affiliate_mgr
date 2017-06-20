@@ -4,17 +4,17 @@
   <body>
     <a href="/app?action=show&id=1">Record 1</a>
     <br>
-    Message: {{:_msg}}
+    System Message: {{sys-msg}}
     <p>
-    {{for}}
-      <a href="/app?action=show&id={{:id}}">Edit id {{:id}}</a>
+    {{#all-recs}}
+      <a href="/app?action=show&id={{id}}">Edit id {{id}}</a>
       <br/>
-      Title: {{:title}}
+      Title: {{title}}
       <br/>
-      Desc: {{:desc}}
+      Desc: {{desc}}
       <br/>
-      Stars: {{:stars}}
+      Stars: {{stars}}
       <br/>
-    {{end}}
+    {{/all-recs}}
   </body>
 </html>

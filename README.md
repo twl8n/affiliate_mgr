@@ -2,7 +2,7 @@
 
 * need to implement the state machine
 
-* start using clostache
+* + start using clostache
 
 * x Add tag table and entry-to-tag linking table to the db
 
